@@ -1,19 +1,21 @@
-
+from pathlib import Path
 import pandas as pd
 import ccxt
 
-# python src/data_loader.py
+# python -m src.data_loader
+
 
 class DataLoader:
     """
     
     """
+
     def __init__(self):
         """
         
         """
         self.exchange = ccxt.binance()
-    
+
     def create_coin_df(self, coin, fiat, timeframe):
         """
         Creates a DataFrame for a pair (cryptocurrency/ fiat currency) on a custom timeframe.
@@ -45,15 +47,17 @@ class DataLoader:
         """
         coin, fiat = coin.upper(), fiat.upper()
         try:
-            bars = self.exchange.fetch_ohlcv(f"{coin}/{fiat}", timeframe=f"{timeframe}", limit=1000)
+            bars = self.exchange.fetch_ohlcv(
+                f"{coin}/{fiat}", timeframe=f"{timeframe}", limit=1000)
         except Exception as error:
             print(f"Error fetching data for {coin}/{fiat}: {error}")
             bars = []
-        
-        df = pd.DataFrame(bars, columns=["timestamp", "open", "high", "low", "close", "volume"])
+
+        df = pd.DataFrame(
+            bars, columns=["timestamp", "open", "high", "low", "close", "volume"])
         df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
         return df
-    
+
     def create_csv_by_df(self, df, coin, fiat, timeframe, raw=False, processed=False):
         """
         Creates a csv file with DataFrame.
@@ -78,20 +82,19 @@ class DataLoader:
         Example:
             obj.create_csv_by_df(df=btc_df, coin="BTC", fiat="USDT", timeframe="1d", raw=True, processed=False)
             >>> data/raw/btc.csv
-                timestamp, open, high, low, close, volume
-                2025-10-06, 124500.000, 126000.000, 123000.000, 124800.000, 150000000.000
-                2025-10-5, 124800.000, 125000.000, 124000.000, 124900.000, 120000000.000
+                , timestamp, open, high, low, close, volume
+                0, 2025-10-06, 124500.000, 126000.000, 123000.000, 124800.000, 150000000.000
+                1, 2025-10-5, 124800.000, 125000.000, 124000.000, 124900.000, 120000000.000
         """
         if raw:
-            df.to_csv(f"data/raw/{coin}_{fiat}_{timeframe}.csv")
+            df.to_csv(f"data/raw/{coin}_{fiat}_{timeframe}.csv", index=False)
             print(f"CSV created: data/raw/{coin}_{fiat}_{timeframe}.csv")
         elif processed:
-            df.to_csv(f"data/processed/{coin}_{fiat}_{timeframe}.csv")
+            df.to_csv(f"data/processed/{coin}_{fiat}_{timeframe}.csv", index=False)
             print(f"CSV created: data/processed/{coin}_{fiat}_{timeframe}.csv")
         else:
             print("Please choose between raw and processed folder.")
 
-    
     def automate_create_csv_by_df(self, coins, fiats, timeframes, raw=False, processed=False):
         """
         Automate CSV-File creation.
@@ -117,17 +120,27 @@ class DataLoader:
         Example:
             obj.automate_create_csv_by_df(coins=["BTC", "ETH"], fiats=["USDT", "USDT"], timeframes=["1d", "1h"], raw=True)
             >>> data/raw/btc.csv
-                timestamp, open, high, low, close, volume
-                2025-10-06, 124500.000, 126000.000, 123000.000, 124800.000, 150000000.000
-                2025-10-5, 124800.000, 125000.000, 124000.000, 124900.000, 120000000.000
+                ,timestamp, open, high, low, close, volume
+                0, 2025-10-06, 124500.000, 126000.000, 123000.000, 124800.000, 150000000.000
+                1, 2025-10-5, 124800.000, 125000.000, 124000.000, 124900.000, 120000000.000
                 
                 data/raw/eth.csv
-                timestamp, open, high, low, close, volume
-                2025-10-06, 1200.000, 1300.000, 1100.000, 12000000.000
-                2025-10-05, 1100.000, 1200.000, 1000.000, 1200.000, 1300000.000
+                , timestamp, open, high, low, close, volume
+                0, 2025-10-06, 1200.000, 1300.000, 1100.000, 12000000.000
+                1, 2025-10-05, 1100.000, 1200.000, 1000.000, 1200.000, 1300000.000
         """
         for coin, fiat, timeframe in zip(coins, fiats, timeframes):
             df = self.create_coin_df(coin, fiat, timeframe)
             self.create_csv_by_df(df, coin, fiat, timeframe, raw, processed)
 
-dl = DataLoader().automate_create_csv_by_df(coins=["BTC", "ETH"], fiats=["USDT", "USDT"], timeframes=["1d", "1h"], raw=True)
+    def load_data_from_csv(self, csv_paths):
+        """
+        
+        """
+        dfs = {}
+        for csv_path in csv_paths:
+            df = pd.read_csv(csv_path)
+            path = Path(csv_path)
+            data_name = path.stem
+            dfs[data_name] = df
+        return dfs
